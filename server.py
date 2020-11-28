@@ -56,14 +56,17 @@ for i in range(nmachines - nclients, nmachines):
     os.system(system_cmd)
     time.sleep(1)
 
+
 def getTime():
-    pass
+    return time.ctime().split()[3]
+
 
 def convert_float(val):
     try:
         return float(val)
     except:
         return 0
+
 
 def convert_dict_float(str_dict):
     local_dict = {}
@@ -73,40 +76,68 @@ def convert_dict_float(str_dict):
     return local_dict
 
 
-def append_ycsb(telemetry):
-    performance = telemetry["performance_info"]
-    for range in performance.keys():
-        for process in performance[range].keys():
-            range_id = int(range)
-            process_id = int(process)
-            fetched_performance = performance[range][process]
+def append_ycsb(node, telemetry):
+    try:
+        performance = telemetry["performance_info"]
+        for range in performance.keys():
+            for process in performance[range].keys():
+                range_id = int(range)
+                process_id = int(process)
+                fetched_performance = performance[range][process]
 
-            if range_id not in telemetry_data["ycsb"]:
-                telemetry_data[range_id] = {}
-            if process_id not in telemetry_data["ycsb"][range_id]:
-                telemetry_data[range_id][process_id] = []
+                if len(fetched_performance) == 0:
+                    continue
+                if node not in telemetry_data["ycsb"]:
+                    telemetry_data["ycsb"][node] = {}
+                if range_id not in telemetry_data["ycsb"][node]:
+                    telemetry_data["ycsb"][node][range_id] = {}
+                if process_id not in telemetry_data["ycsb"][node][range_id]:
+                    telemetry_data["ycsb"][node][range_id][process_id] = []
 
-            local_performance = {
-                "data_time": fetched_performance["data_time"],
-                "fetch_time": getTime()
-            }
-            local_performance["throughput"] = float(fetched_performance["throughput"])
-            local_performance["read"] = convert_dict_float(fetched_performance["read"])
-            local_performance["write"] = convert_dict_float(fetched_performance["write"])
+                local_performance = {"data_time": fetched_performance["data_time"],
+                                     "fetch_time": getTime(),
+                                     "throughput": float(fetched_performance["throughput"]),
+                                     "read": convert_dict_float(fetched_performance["read"]),
+                                     "write": convert_dict_float(fetched_performance["write"])}
+
+                telemetry_data["ycsb"][node][range_id][process_id].append(local_performance)
+    except Exception as e:
+        print("Error parsing ycsb: ", e)
+        print(json.dumps(telemetry, indent=4))
 
 
 
+def append_nova(node, telemetry):
+    try:
+        # telemetry_data["nova"]["node_id"]["cpu_info"].append(telemetry["cpu_info"])
+        telemetry_data["nova"][node] = telemetry_data["nova"].get(node, {})
+        telemetry_data["nova"][node]['cpu_info'] = telemetry_data["nova"][node].get('cpu_info', [])
+        telemetry_data["nova"][node]['disk_info'] = telemetry_data["nova"][node].get('disk_info', [])
+        telemetry_data["nova"][node]['mem_info'] = telemetry_data["nova"][node].get('mem_info', [])
+        telemetry_data["nova"][node]['rdma_info'] = telemetry_data["nova"][node].get('rdma_info', [])
+        telemetry_data["nova"][node]['net_info'] = telemetry_data["nova"][node].get('net_info', [])
 
-def append_nova(telemetry):
-    pass
+        if len(telemetry['cpu_info']) != 0:
+            telemetry_data["nova"][node]['cpu_info'].append({'data_time': telemetry['cpu_info']['data_time'],
+                                                             'fetch_time': getTime(),
+                                                             'all': telemetry['cpu_info']['all']})
+        if len(telemetry['disk_info']) != 0:
+            telemetry_data["nova"][node]['disk_info'].append({'data_time': telemetry['disk_info']['data_time'],
+                                                              'fetch_time': getTime(),
+                                                              'util': telemetry['disk_info']['util']})
+        # Add others if required.
+    except Exception as e:
+        print('Error parsing nova: ', e)
+        print(json.dumps(telemetry, indent=4))
+
 
 def append_telemetry(telemetry):
     try:
         node = int(telemetry["server_id"])
         if node >= nmachines - nclients:
-            append_ycsb(telemetry)
+            append_ycsb(node, telemetry)
         else:
-            append_nova(telemetry)
+            append_nova(node, telemetry)
 
     except:
         print("couldn't find server id in telemetry: ")
@@ -131,7 +162,7 @@ while True:
     counter = 0
     brk = False
     for i, conn in enumerate(connections):
-        data = conn.recv(1024)
+        data = conn.recv(102400)
         # print("data from ", str(i), " --> ", repr(data))
         if not data:
             print("no data from {}".format(i))
@@ -149,8 +180,11 @@ while True:
             telemetry = json.loads(data_str)
             append_telemetry(telemetry)
 
-        except:
-            print("couldn't convert the input string")
+        except Exception as e:
+            print("couldn't convert the input string: ", e)
+            print('string: ', data_str)
     counter += 1
     if brk:
         break
+
+print(json.dumps(telemetry_data, indent=4))

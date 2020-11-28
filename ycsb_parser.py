@@ -125,6 +125,8 @@ def send_data(performance_info):
     }
     combined_str = json.dumps(combined_info)
     data = combined_str.encode('utf-8')
+    print(sys.getsizeof(data))
+    print(len(data))
     socket_conn.sendall(data)
     socket_conn.recv(128)
     print("data sent")

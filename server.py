@@ -10,8 +10,6 @@ import argparse
 
 # sys.stdout = open(sys.argv[7], 'w')
 
-assert nclients <= nmachines
-
 connections = []
 nova_machines = []
 ycsb_machines = []

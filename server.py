@@ -8,17 +8,6 @@ import logging
 import argparse
 # port = 65432        # Port to listen on (non-privileged ports are > 1023)
 
-
-nmachines = int(sys.argv[1])
-nclients = int(sys.argv[2])
-ranges = int(sys.argv[3])
-max_processes = int(sys.argv[4])
-result_dir = sys.argv[5]
-ip = sys.argv[6]
-port = int(sys.argv[7])
-telemetry_filepath = sys.argv[8]
-should_wait = sys.argv[9]
-
 # sys.stdout = open(sys.argv[7], 'w')
 
 assert nclients <= nmachines
@@ -29,6 +18,25 @@ ycsb_machines = []
 telemetry_data_lock = threading.Lock()
 
 telemetry_data = {"ycsb": {}, "nova": {}}
+
+
+def parse_args(args=sys.argv[1:]):
+    parser = argparse.ArgumentParser(
+        description="Run placement mapper."
+    )
+    parser.add_argument("--nmachines", type=int)
+    parser.add_argument("--nclients", type=int)
+    parser.add_argument("--ranges", type=int)
+    parser.add_argument("--max_processes", type=int)
+    parser.add_argument("--result_dir", type=str)
+    parser.add_argument("--ip", type=str)
+    parser.add_argument("--port", type=int)
+    parser.add_argument("--telemetry_filepath", type=str)
+    parser.add_argument("--should_wait", action='store_true')
+    parser.add_argument("--verbose", "-v", action="store_true")
+
+    args = parser.parse_args(args=args)
+    return args
 
 
 # run parser on all machines now
@@ -219,7 +227,22 @@ def main():
 
 
 if __name__ == '__main__':
+    args = parse_args()
+
+    nmachines = args.nmachines
+    nclients = args.nclients
+    ranges = args.ranges
+    max_processes = args.max_processes
+    result_dir = args.result_dir
+    ip = args.ip
+    port = args.port
+    telemetry_filepath = args.telemetry_filepath
+    should_wait = args.should_wait
+
     log_format = "%(asctime)s: %(message)s"
-    logging.basicConfig(format=log_format, level=logging.INFO, datefmt="%H:%M:%S")
+    if args.verbose:
+        logging.basicConfig(format=log_format, level=logging.DEBUG, datefmt="%H:%M:%S")
+    else:
+        logging.basicConfig(format=log_format, level=logging.INFO, datefmt="%H:%M:%S")
     main()
 

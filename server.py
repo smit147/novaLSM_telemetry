@@ -30,6 +30,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--ip", type=str)
     parser.add_argument("--port", type=int)
     parser.add_argument("--telemetry_filepath", type=str)
+    parser.add_argument("--config_filepath", type=str)
     parser.add_argument("--should_wait", action='store_true')
     parser.add_argument("--verbose", "-v", action="store_true")
 
@@ -140,8 +141,61 @@ def append_telemetry(telemetry):
     return
 
 
+class Config:
+    def __init__(self, ltcs, stocs, start_time):
+        # self.config_id = config_id
+        self.ltcs = ltcs
+        self.stocs = stocs
+        self.start_time = start_time
+        self.ranges = []
+
+    def add_range(self, start, end, node_id, db_index):
+        self.ranges.append((start, end, node_id, db_index))
+
+    def get_str_range(self):
+        output_str = ''
+        for r in self.ranges:
+            output_str += '{},{},{},{}\n'.format(r[0], r[1], r[2], r[3])
+
+        return output_str
+
+    def get_str(self, cfg_id):
+        output_str = 'config-{}\n'.format(cfg_id)
+        for ltc in self.ltcs:
+            output_str += '{},'.format(ltc)
+        output_str = output_str[:-1] + '\n'
+        for stoc in self.stocs:
+            output_str += '{},'.format(stoc)
+        output_str = output_str[:-1] + '\n'
+        output_str += '{}\n'.format(self.start_time)
+        output_str += self.get_str_range()
+        return output_str
+
+
+def update_cfg_file(new_cfg, cfg_filepath):
+    # append new_cfg to cfg file
+    cfg_file = open(cfg_filepath, 'w')
+    cur_cfg_id = 0
+    for line in cfg_file:
+        if 'config' in line:
+            cur_cfg_id = line.strip().split('-')[-1]
+
+    cfg_file.write(new_cfg.get_str(cur_cfg_id+1))
+    # send updated cfg to servers, coordinator and client.
+    for m in range(nmachines):
+        os.system('scp {} node-{}:{}'.format(cfg_filepath, m, cfg_filepath))
+
+    # todo: notify coordinator
+
+
 def cfg_change():
-    pass
+    time.sleep(20)
+    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg.add_range(0, 250000, 0, 0)
+    new_cfg.add_range(250000, 500000, 1, 1)
+    new_cfg.add_range(500000, 625000, 0, 2)
+    new_cfg.add_range(625000, 1000000, 1, 3)
+    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath)
 
 
 def data_collection():

@@ -176,7 +176,7 @@ def update_cfg_file(new_cfg, cfg_filepath):
     # append new_cfg to cfg file
     cfg_file = open(cfg_filepath, 'w')
     cur_cfg_id = 0
-    for line in cfg_file:
+    for line in cfg_file.readlines():
         if 'config' in line:
             cur_cfg_id = line.strip().split('-')[-1]
 

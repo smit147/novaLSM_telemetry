@@ -29,6 +29,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--result_dir", type=str)
     parser.add_argument("--ip", type=str)
     parser.add_argument("--port", type=int)
+    parser.add_argument("--coordinator_port", type=int)
     parser.add_argument("--telemetry_filepath", type=str)
     parser.add_argument("--config_filepath", type=str)
     parser.add_argument("--should_wait", action='store_true')
@@ -140,6 +141,10 @@ def append_telemetry(telemetry):
 
     return
 
+def connect_with_coordinator():
+    socket_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket_conn.connect(('127.0.0.1', args.coordinator_port))
+    return socket_conn
 
 class Config:
     def __init__(self, ltcs, stocs, start_time):
@@ -172,30 +177,61 @@ class Config:
         return output_str
 
 
-def update_cfg_file(new_cfg, cfg_filepath):
+def update_cfg_file(new_cfg, cfg_filepath, coordinator_conn):
     # append new_cfg to cfg file
-    cfg_file = open(cfg_filepath, 'w')
+    cfg_file = open(cfg_filepath, 'r')
     cur_cfg_id = 0
     for line in cfg_file.readlines():
         if 'config' in line:
-            cur_cfg_id = line.strip().split('-')[-1]
+            cur_cfg_id = int(line.strip().split('-')[-1])
 
+    cfg_file.close()
+
+    cfg_file = open(cfg_filepath, 'a')
     cfg_file.write(new_cfg.get_str(cur_cfg_id+1))
+    cfg_file.close()
+    
     # send updated cfg to servers, coordinator and client.
     for m in range(nmachines):
-        os.system('scp {} node-{}:{}'.format(cfg_filepath, m, cfg_filepath))
+        scp_command = 'scp {} node-{}:{}'.format(cfg_filepath, m, cfg_filepath)
+        logging.info(scp_command)
+        os.system(scp_command)
 
     # todo: notify coordinator
-
+    coordinator_conn.sendall("change_cfg\n".encode("utf-8"))
+    logging.info("config data sent to coordinator")
 
 def cfg_change():
-    time.sleep(20)
+    coordinator_conn = connect_with_coordinator()
+    # while True:
+    time.sleep(50)
     new_cfg = Config([0, 1], [2, 3], 50)
     new_cfg.add_range(0, 250000, 0, 0)
     new_cfg.add_range(250000, 500000, 1, 1)
     new_cfg.add_range(500000, 625000, 0, 2)
     new_cfg.add_range(625000, 1000000, 1, 3)
-    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath)
+    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    time.sleep(30)
+    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg.add_range(0, 250000, 0, 0)
+    new_cfg.add_range(250000, 500000, 0, 1)
+    new_cfg.add_range(500000, 625000, 0, 2)
+    new_cfg.add_range(625000, 1000000, 1, 3)
+    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    time.sleep(30)
+    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg.add_range(0, 250000, 0, 0)
+    new_cfg.add_range(250000, 500000, 0, 1)
+    new_cfg.add_range(500000, 625000, 0, 2)
+    new_cfg.add_range(625000, 1000000, 0, 3)
+    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    time.sleep(30)
+    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg.add_range(0, 250000, 1, 0)
+    new_cfg.add_range(250000, 500000, 1, 1)
+    new_cfg.add_range(500000, 625000, 1, 2)
+    new_cfg.add_range(625000, 1000000, 1, 3)
+    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
 
 
 def data_collection():

@@ -15,6 +15,7 @@ max_processes = int(sys.argv[4])
 result_dir = sys.argv[5]
 ip = sys.argv[6]
 port = int(sys.argv[7])
+should_wait = sys.argv[8]
 
 # sys.stdout = open(sys.argv[7], 'w')
 
@@ -44,7 +45,8 @@ def get_ycsb_command(node, dir, ip, port, ranges, max_processes):
 
 for i in range(nmachines-nclients):
     nova_cmd = get_nova_command(i, result_dir, ip, port)
-    system_cmd = "ssh -oStrictHostKeyChecking=no node-{} {} &".format(i, nova_cmd)
+    client_host = "node-{}".format(i)
+    system_cmd = "ssh -oStrictHostKeyChecking=no {} {} &".format(client_host, nova_cmd)
     print(system_cmd)
     os.system(system_cmd)
     time.sleep(1)
@@ -115,12 +117,16 @@ def append_telemetry(telemetry):
 
     return
 
+if should_wait:
+    wait_threshold = nmachines + 1
+else:
+    wait_threshold = nmachines
 # wait for connection
 while True:
     conn, addr = s.accept()
     print("connected to {}".format(addr))
     connections.append(conn)
-    if len(connections) == nmachines:
+    if len(connections) == wait_threshold:
         break
 
 telemetry_data = {}

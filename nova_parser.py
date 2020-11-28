@@ -129,6 +129,8 @@ def send_data(cpu_info, rdma_info, disk_info, mem_info, net_info):
     data = combined_str.encode('utf-8')
     socket_conn.sendall(data)
     socket_conn.recv(128)
+    print(sys.getsizeof(data))
+    print(len(data))
     print("data sent")
     print("\n")
 

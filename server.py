@@ -174,22 +174,29 @@ class Config:
 
 def update_cfg_file(new_cfg, cfg_filepath):
     # append new_cfg to cfg file
-    cfg_file = open(cfg_filepath, 'w')
+    cfg_file = open(cfg_filepath, 'r')
     cur_cfg_id = 0
     for line in cfg_file.readlines():
         if 'config' in line:
-            cur_cfg_id = line.strip().split('-')[-1]
+            cur_cfg_id = int(line.strip().split('-')[-1])
 
+    cfg_file.close()
+
+    cfg_file = open(cfg_filepath, 'a')
     cfg_file.write(new_cfg.get_str(cur_cfg_id+1))
+    cfg_file.close()
+    
     # send updated cfg to servers, coordinator and client.
     for m in range(nmachines):
-        os.system('scp {} node-{}:{}'.format(cfg_filepath, m, cfg_filepath))
+        scp_command = 'scp {} node-{}:{}'.format(cfg_filepath, m, cfg_filepath)
+        logging.info(scp_command)
+        os.system(scp_command)
 
     # todo: notify coordinator
 
 
 def cfg_change():
-    time.sleep(20)
+    time.sleep(5)
     new_cfg = Config([0, 1], [2, 3], 50)
     new_cfg.add_range(0, 250000, 0, 0)
     new_cfg.add_range(250000, 500000, 1, 1)

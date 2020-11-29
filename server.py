@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import socket
@@ -146,6 +147,7 @@ def connect_with_coordinator():
     socket_conn.connect(('127.0.0.1', args.coordinator_port))
     return socket_conn
 
+
 class Config:
     def __init__(self, ltcs, stocs, start_time):
         # self.config_id = config_id
@@ -177,7 +179,12 @@ class Config:
         return output_str
 
 
+cur_config_state = None
+
+
 def update_cfg_file(new_cfg, cfg_filepath, coordinator_conn):
+    global cur_config_state
+
     # append new_cfg to cfg file
     cfg_file = open(cfg_filepath, 'r')
     cur_cfg_id = 0
@@ -197,41 +204,111 @@ def update_cfg_file(new_cfg, cfg_filepath, coordinator_conn):
         logging.info(scp_command)
         os.system(scp_command)
 
-    # todo: notify coordinator
+    # notify coordinator
     coordinator_conn.sendall("change_cfg\n".encode("utf-8"))
+    cur_config_state = new_cfg
     logging.info("config data sent to coordinator")
+
+
+def read_config(cfg_filepath):
+    global cur_config_state
+
+    cfg_file = open(cfg_filepath, 'r')
+    cfg_data = cfg_file.readlines()
+    ind = 0
+    if 'config' in cfg_data[ind]:
+        ind += 1
+        ltcs = cfg_data[ind].strip().split(',')
+        ind += 1
+        stocs = cfg_data[ind].strip().split(',')
+        ind += 1
+        time = cfg_data[ind].strip()
+        ind += 1
+        cur_cfg = Config(ltcs, stocs, time)
+        while not (ind >= len(cfg_data) or 'config' in cfg_data[ind]):
+            r_info = cfg_data[ind].strip().split(',')
+            cur_cfg.add_range(int(r_info[0]), int(r_info[1]), int(r_info[2]), int(r_info[3]))
+            ind += 1
+        cur_config_state = cur_cfg
+        print(cur_config_state.get_str('~'))
+
+
+
+def get_max_throughput_range(node, per_range_throughput):
+    _, i = max([(per_range_throughput[ind], ind) for ind in range(len(cur_config_state.ranges)) if cur_config_state.ranges[ind][2] == node])
+    return i
+
 
 def cfg_change():
     coordinator_conn = connect_with_coordinator()
     # while True:
+    # time.sleep(50)
+    # new_cfg = Config([0, 1], [2, 3], 50)
+    # new_cfg.add_range(0, 250000, 0, 0)
+    # new_cfg.add_range(250000, 500000, 1, 1)
+    # new_cfg.add_range(500000, 625000, 0, 2)
+    # new_cfg.add_range(625000, 1000000, 1, 3)
+    # update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    # time.sleep(30)
+    # new_cfg = Config([0, 1], [2, 3], 80)
+    # new_cfg.add_range(0, 250000, 0, 0)
+    # new_cfg.add_range(250000, 500000, 0, 1)
+    # new_cfg.add_range(500000, 625000, 0, 2)
+    # new_cfg.add_range(625000, 1000000, 1, 3)
+    # update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    # time.sleep(30)
+    # new_cfg = Config([0, 1], [2, 3], 110)
+    # new_cfg.add_range(0, 250000, 0, 0)
+    # new_cfg.add_range(250000, 500000, 0, 1)
+    # new_cfg.add_range(500000, 625000, 0, 2)
+    # new_cfg.add_range(625000, 1000000, 0, 3)
+    # update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    # time.sleep(30)
+    # new_cfg = Config([0, 1], [2, 3], 140)
+    # new_cfg.add_range(0, 250000, 1, 0)
+    # new_cfg.add_range(250000, 500000, 1, 1)
+    # new_cfg.add_range(500000, 625000, 1, 2)
+    # new_cfg.add_range(625000, 1000000, 1, 3)
+    # update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+
+    # Getting the initial configuration
+    read_config(args.config_filepath)
+
+    # strawman implementation
     time.sleep(50)
-    new_cfg = Config([0, 1], [2, 3], 50)
-    new_cfg.add_range(0, 250000, 0, 0)
-    new_cfg.add_range(250000, 500000, 1, 1)
-    new_cfg.add_range(500000, 625000, 0, 2)
-    new_cfg.add_range(625000, 1000000, 1, 3)
-    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
-    time.sleep(30)
-    new_cfg = Config([0, 1], [2, 3], 80)
-    new_cfg.add_range(0, 250000, 0, 0)
-    new_cfg.add_range(250000, 500000, 0, 1)
-    new_cfg.add_range(500000, 625000, 0, 2)
-    new_cfg.add_range(625000, 1000000, 1, 3)
-    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
-    time.sleep(30)
-    new_cfg = Config([0, 1], [2, 3], 110)
-    new_cfg.add_range(0, 250000, 0, 0)
-    new_cfg.add_range(250000, 500000, 0, 1)
-    new_cfg.add_range(500000, 625000, 0, 2)
-    new_cfg.add_range(625000, 1000000, 0, 3)
-    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
-    time.sleep(30)
-    new_cfg = Config([0, 1], [2, 3], 140)
-    new_cfg.add_range(0, 250000, 1, 0)
-    new_cfg.add_range(250000, 500000, 1, 1)
-    new_cfg.add_range(500000, 625000, 1, 2)
-    new_cfg.add_range(625000, 1000000, 1, 3)
-    update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+    with telemetry_data_lock:
+        # min_throughput = float.inf
+        per_node_throughput = [0 for _ in range(len(cur_config_state.ltcs))]
+        per_range_throughput = [0 for _ in range(len(cur_config_state.ranges))]
+
+        for node in telemetry_data["ycsb"]:
+            for r in telemetry_data["ycsb"][node]:
+                r_id = int(r)
+                for process in telemetry_data["ycsb"][node][r]:
+                    num_ele = len(telemetry_data["ycsb"][node][r][process])
+                    avg = sum(
+                        [telemetry_data["ycsb"][node][r][process][t]["throughput"] for t in range(num_ele)]) / num_ele
+                    per_node_throughput[cur_config_state.ranges[r_id][2]] += avg
+                    per_range_throughput[r_id] += avg
+
+        # to swap, max throughput range in this node
+        node_1 = per_node_throughput.index(max(per_node_throughput))
+        # swap with max throughput range in this node
+        node_2 = per_node_throughput.index(min(per_node_throughput))
+        range_1 = get_max_throughput_range(node_1, per_range_throughput)
+        range_2 = get_max_throughput_range(node_2, per_range_throughput)
+
+        new_cfg_state = copy.deepcopy(cur_config_state)
+        l1 = list(new_cfg_state.ranges[range_1])
+        l2 = list(new_cfg_state.ranges[range_2])
+        l1[2] = node_2
+        l2[2] = node_1
+
+        new_cfg_state.ranges[range_1] = tuple(l1)
+        new_cfg_state.ranges[range_2] = tuple(l2)
+
+        update_cfg_file(new_cfg=new_cfg_state, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
+
 
 
 def data_collection():

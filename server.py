@@ -212,21 +212,21 @@ def cfg_change():
     new_cfg.add_range(625000, 1000000, 1, 3)
     update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
     time.sleep(30)
-    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg = Config([0, 1], [2, 3], 80)
     new_cfg.add_range(0, 250000, 0, 0)
     new_cfg.add_range(250000, 500000, 0, 1)
     new_cfg.add_range(500000, 625000, 0, 2)
     new_cfg.add_range(625000, 1000000, 1, 3)
     update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
     time.sleep(30)
-    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg = Config([0, 1], [2, 3], 110)
     new_cfg.add_range(0, 250000, 0, 0)
     new_cfg.add_range(250000, 500000, 0, 1)
     new_cfg.add_range(500000, 625000, 0, 2)
     new_cfg.add_range(625000, 1000000, 0, 3)
     update_cfg_file(new_cfg=new_cfg, cfg_filepath=args.config_filepath, coordinator_conn=coordinator_conn)
     time.sleep(30)
-    new_cfg = Config([0, 1], [2, 3], 50)
+    new_cfg = Config([0, 1], [2, 3], 140)
     new_cfg.add_range(0, 250000, 1, 0)
     new_cfg.add_range(250000, 500000, 1, 1)
     new_cfg.add_range(500000, 625000, 1, 2)
@@ -302,7 +302,7 @@ def main():
         if len(connections) == wait_threshold:
             break
 
-    logging.info('Creating thread for configuration change')
+    logging.info('starting configuration change thread')
     cfg_change_thread = threading.Thread(target=cfg_change)
     cfg_change_thread.start()
 

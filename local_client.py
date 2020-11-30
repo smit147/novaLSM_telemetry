@@ -19,7 +19,7 @@ for i in range(4):
 
 throughput_global_lock = threading.Lock()
 
-def animate():
+def animate(i):
     for i in range(4):
         with throughput_global_lock:
             xs = range(1, len(throughput_global[i])+1)

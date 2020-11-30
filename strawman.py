@@ -17,11 +17,14 @@ def cfg_change():
     # Getting the initial configuration
     # Utils.read_config(Utils.args.config_filepath)
 
-    # get_one_copy_of_telemetry
-    telemetry_data = Utils.get_copy_of_telemetry_data()
+
 
     # strawman implementation
     time.sleep(50)
+
+    # get_one_copy_of_telemetry
+    telemetry_data = Utils.get_copy_of_telemetry_data()
+
     per_node_throughput = [0 for _ in range(len(Utils.cur_config_state.ltcs))]
     per_range_throughput = [0 for _ in range(len(Utils.cur_config_state.ranges))]
 

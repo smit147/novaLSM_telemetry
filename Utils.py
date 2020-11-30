@@ -78,7 +78,7 @@ def update_cfg_file(new_cfg, cfg_filepath, coordinator_conn):
     cfg_file.close()
 
     cfg_file = open(cfg_filepath, 'a')
-    cfg_file.write(new_cfg.get_str(cur_cfg_id + 1))
+    cfg_file.write('\n'+new_cfg.get_str(cur_cfg_id + 1))
     cfg_file.close()
 
     # send updated cfg to servers, coordinator and client.

@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import socket
@@ -10,10 +11,16 @@ import Utils
 import strawman
 # port = 65432        # Port to listen on (non-privileged ports are > 1023)
 
+# sys.stdout = open(sys.argv[7], 'w')
 
 connections = []
+local_connection = None
 nova_machines = []
 ycsb_machines = []
+telemetry_data_lock = threading.Lock()
+local_connections_lock = threading.Lock()
+
+telemetry_data = {"ycsb": {}, "nova": {}}
 
 
 def parse_args(args=sys.argv[1:]):
@@ -28,6 +35,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--ip", type=str)
     parser.add_argument("--port", type=int)
     parser.add_argument("--coordinator_port", type=int)
+    parser.add_argument("--local_connection_port", type=int)
     parser.add_argument("--telemetry_filepath", type=str)
     parser.add_argument("--config_filepath", type=str)
     parser.add_argument("--should_wait", action='store_true')
@@ -140,6 +148,29 @@ def append_telemetry(telemetry):
     return
 
 
+def send_data_to_local_connections(data):
+    data_str = json.dumps(data)
+    data_str += "end_data"
+    data_str = data_str.encode("utf-8")
+    with local_connections_lock:
+        local_connection.sendall(data_str)
+
+    logging.info("data sent")
+
+def send_telemetry_to_local_connection(telemetry):
+    try:
+        node = int(telemetry["server_id"])
+        if node >= nmachines - nclients:
+            data = telemetry["performance_info"]
+            send_data_to_local_connections(data)
+
+    except Exception as e:
+        logging.debug("couldn't find server id in telemetry: ", e)
+        logging.debug(json.dumps(telemetry, indent=4))
+        return
+
+    return
+
 def data_collection():
     while True:
         counter = 0
@@ -159,6 +190,8 @@ def data_collection():
                 telemetry = json.loads(data_str)
                 append_telemetry(telemetry)
 
+                send_telemetry_to_local_connection(telemetry)
+
             except Exception as e:
                 logging.debug("couldn't convert the input string: ", e)
                 logging.debug('string: ', data_str)
@@ -170,6 +203,20 @@ def data_collection():
     json.dump(Utils.telemetry_data, telemetry_file)
     print(json.dumps(Utils.telemetry_data, indent=4))
 
+
+def local_connection_func():
+    global local_connection
+    print('starting server for local connections on port: ', args.local_connection_port)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('node-5.dev.nova-lsm-PG0.apt.emulab.net', args.local_connection_port))
+    s.listen(5)
+    conn, addr = s.accept()
+    print("connected with local client: ", addr)
+    with local_connections_lock:
+        local_connection = conn
+
+    while True:
+        pass
 
 def main():
     # initializing utils
@@ -219,13 +266,17 @@ def main():
     cfg_change_thread = threading.Thread(target=strawman.cfg_change)
     cfg_change_thread.start()
 
+    logging.info('starting local connections thread')
+    local_connection_thread = threading.Thread(target=local_connection_func)
+    local_connection_thread.start()
+
     logging.info('starting data collection thread')
     server_thread = threading.Thread(target=data_collection)
     server_thread.start()
 
     cfg_change_thread.join()
     server_thread.join()
-
+    local_connection_thread.join()
 
 if __name__ == '__main__':
     args = parse_args()

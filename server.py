@@ -9,6 +9,7 @@ import logging
 import argparse
 import Utils
 import strawman
+import scads_whitebox
 # port = 65432        # Port to listen on (non-privileged ports are > 1023)
 
 # sys.stdout = open(sys.argv[7], 'w')
@@ -265,7 +266,7 @@ def main():
     # Change here if you want to change the logic of dynamic placement mapper.
     if args.run_dpm == "run_dpm":
         logging.info('starting configuration change thread')
-        cfg_change_thread = threading.Thread(target=strawman.cfg_change)
+        cfg_change_thread = threading.Thread(target=scads_whitebox.cfg_change)
         cfg_change_thread.start()
 
     logging.info('starting local connections thread')

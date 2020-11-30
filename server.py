@@ -39,6 +39,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--telemetry_filepath", type=str)
     parser.add_argument("--config_filepath", type=str)
     parser.add_argument("--should_wait", action='store_true')
+    parser.add_argument("--run_dpm", type=str)
     parser.add_argument("--verbose", "-v", action="store_true")
 
     args = parser.parse_args(args=args)
@@ -262,9 +263,10 @@ def main():
             break
 
     # Change here if you want to change the logic of dynamic placement mapper.
-    logging.info('starting configuration change thread')
-    cfg_change_thread = threading.Thread(target=strawman.cfg_change)
-    cfg_change_thread.start()
+    if args.run_dpm == "run_dpm":
+        logging.info('starting configuration change thread')
+        cfg_change_thread = threading.Thread(target=strawman.cfg_change)
+        cfg_change_thread.start()
 
     logging.info('starting local connections thread')
     local_connection_thread = threading.Thread(target=local_connection_func)
@@ -274,7 +276,9 @@ def main():
     server_thread = threading.Thread(target=data_collection)
     server_thread.start()
 
-    cfg_change_thread.join()
+    if args.run_dpm == "run_dpm":
+        cfg_change_thread.join()
+
     server_thread.join()
     local_connection_thread.join()
 

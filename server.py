@@ -14,7 +14,7 @@ import strawman
 # sys.stdout = open(sys.argv[7], 'w')
 
 connections = []
-local_connection = None
+local_connections = []
 nova_machines = []
 ycsb_machines = []
 telemetry_data_lock = threading.Lock()
@@ -154,7 +154,8 @@ def send_data_to_local_connections(data):
     data_str += "end_data"
     data_str = data_str.encode("utf-8")
     with local_connections_lock:
-        local_connection.sendall(data_str)
+        for local_connection in local_connections:
+            local_connection.sendall(data_str)
 
     logging.info("data sent")
 
@@ -206,18 +207,18 @@ def data_collection():
 
 
 def local_connection_func():
-    global local_connection
     print('starting server for local connections on port: ', args.local_connection_port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(('node-5.dev.nova-lsm-PG0.apt.emulab.net', args.local_connection_port))
+    # s.bind(('node-5.dev.nova-lsm-PG0.apt.emulab.net', args.local_connection_port))
+    s.bind(('', args.local_connection_port))
     s.listen(5)
-    conn, addr = s.accept()
-    print("connected with local client: ", addr)
-    with local_connections_lock:
-        local_connection = conn
-
     while True:
-        pass
+        conn, addr = s.accept()
+        print("connected with local client: ", addr)
+        with local_connections_lock:
+            local_connections.append(conn)
+
+        time.sleep(1)
 
 def main():
     # initializing utils

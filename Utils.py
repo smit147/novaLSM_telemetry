@@ -94,8 +94,51 @@ def update_cfg_file(new_cfg, cfg_filepath, coordinator_conn):
 
 
 def get_max_throughput_range(node, per_range_throughput):
-    _, i = max([(per_range_throughput[ind], ind) for ind in range(len(cur_config_state.ranges)) if cur_config_state.ranges[ind][2] == node])
-    return i
+    max_throughput, i = max([(per_range_throughput[ind], ind) for ind in range(len(cur_config_state.ranges)) if cur_config_state.ranges[ind][2] == node])
+    return (max_throughput, i)
+
+
+def get_throughput_for_telemetry(local_telemetry_data, fetch_length):
+    per_node_throughput = [0 for _ in range(len(cur_config_state.ltcs))]
+    per_range_throughput = [0 for _ in range(len(cur_config_state.ranges))]
+
+    for node in local_telemetry_data["ycsb"]:
+        for r in local_telemetry_data["ycsb"][node]:
+            r_id = int(r)
+            for process in local_telemetry_data["ycsb"][node][r]:
+                num_ele_to_fetch = min(len(local_telemetry_data["ycsb"][node][r][process]), fetch_length)
+                num_ele = len(local_telemetry_data["ycsb"][node][r][process])
+
+                avg = sum(
+                    [local_telemetry_data["ycsb"][node][r][process][t]["throughput"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
+                     local_telemetry_data["ycsb"][node][r][process][t]["throughput"] > 0.0]) / num_ele
+                per_node_throughput[cur_config_state.ranges[r_id][2]] += avg
+                per_range_throughput[r_id] += avg
+
+    return per_node_throughput, per_range_throughput
+
+
+def get_p99_for_telemetry(local_telemetry_data, fetch_length):
+    per_node_p99 = [(0, 0) for _ in range(len(cur_config_state.ltcs))]
+    per_range_p99 = [(0, 0) for _ in range(len(cur_config_state.ranges))]
+
+    for node in local_telemetry_data["ycsb"]:
+        for r in local_telemetry_data["ycsb"][node]:
+            r_id = int(r)
+            for process in local_telemetry_data["ycsb"][node][r]:
+                num_ele_to_fetch = min(len(local_telemetry_data["ycsb"][node][r][process]), fetch_length)
+                num_ele = len(local_telemetry_data["ycsb"][node][r][process])
+
+                avg = sum(
+                    [local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
+                     local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] > 0.0]) / num_ele
+
+                per_node_p99[cur_config_state[r_id][2]] = (per_node_p99[cur_config_state[r_id][2]][0]+avg,
+                                                          per_node_p99[cur_config_state[r_id][2]][1]+1)
+
+                per_range_p99[r_id] = (per_range_p99[r_id][0]+avg, per_range_p99[r_id][1]+1)
+
+    return per_node_p99, per_range_p99
 
 
 def get_copy_of_telemetry_data():

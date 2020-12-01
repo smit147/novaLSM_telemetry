@@ -7,36 +7,38 @@ import multiprocessing
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
-
-# latency_fig = plt.figure()
-
-throughput_global = {}
-for i in range(4):
-    throughput_global[i] = []
+import latency_plot
 
 
 def plot_telemetry(telemetry):
-    global count
     try:
         for r in telemetry:
-            should_brk = False
+            r_id = int(r)
             throughput = 0
             for p in telemetry[r]:
                 if "throughput" not in telemetry[r][p]:
-                    should_brk = True
                     break
                 throughput += float(telemetry[r][p].get("throughput", 0))
 
-            if should_brk:
-                break
+            if throughput > 0:
+                throughput_queue.put((r_id, throughput))
 
-            throughput_global[int(r)].append(throughput)
-            # print('data putting in queue {} {}'.format(r, throughput))
-            queue.put((int(r), throughput))
+            p99_latency = (0, 0)
+            for p in telemetry[r]:
+                if "read" not in telemetry[r][p] or "p99" not in telemetry[r][p]["read"]:
+                    break
+                p99_latency = (p99_latency[0] + float(telemetry[r][p]["read"]["p99"]), p99_latency[1] + 1)
+
+            if p99_latency[0] + p99_latency[1] > 0:
+                # print('r_id: {} latency: {}'.format(r_id, p99_latency[0]/p99_latency[1]))
+                p99_latency_queue.put((r_id, p99_latency[0] / p99_latency[1]))
 
     except Exception as e:
         print(json.dumps(telemetry, indent=4))
         print(e)
+
+
+################################################################################
 
 
 throughput_local = {}
@@ -46,11 +48,11 @@ throughput_local_lock = threading.Lock()
 
 style.use('fivethirtyeight')
 
-fig = plt.figure()
-axs = [fig.add_subplot(2,2,i) for i in range(1,5)]
+throughput_fig = plt.figure()
+axs = [throughput_fig.add_subplot(2, 2, i) for i in range(1, 5)]
 
 
-def animate(i):
+def throughput_animate(i):
     for i in range(4):
         with throughput_local_lock:
             if i not in throughput_local:
@@ -62,24 +64,67 @@ def animate(i):
         axs[i].plot(xs, ys)
 
 
-def animation_thread(queue):
-    # print("thread started")
+def throughtput_animation_thread(queue):
     while True:
         node, throughput = queue.get()
-        # print(node, throughput)
         with throughput_local_lock:
             throughput_local[node].append(throughput)
 
-def animation_process(queue):
-    # print("animation process started")
-    anim_thr = threading.Thread(target=animation_thread, args=(queue, ))
+
+def throughput_animation_process(queue):
+    anim_thr = threading.Thread(target=throughtput_animation_thread, args=(queue,))
     anim_thr.start()
 
-    ani = animation.FuncAnimation(fig, animate, interval=1000)
+    ani = animation.FuncAnimation(throughput_fig, throughput_animate, interval=1000)
     plt.show()
 
     anim_thr.join()
 
+
+#######################  P99 Latency #########################################################
+
+
+# p99_latency_local = {}
+# for i in range(4):
+#     p99_latency_local[i] = []
+# p99_latency_local_lock = threading.Lock()
+#
+# style.use('fivethirtyeight')
+#
+# p99_latency_fig = plt.figure()
+# p99_axs = [p99_latency_fig.add_subplot(2, 2, i) for i in range(1, 5)]
+#
+#
+# def p99_latency_animate(i):
+#     for i in range(4):
+#         with p99_latency_local_lock:
+#             if i not in p99_latency_local:
+#                 continue
+#             xs = range(1, len(p99_latency_local[i])+1)
+#             ys = [j for j in p99_latency_local[i]]
+#
+#         p99_axs[i].clear()
+#         p99_axs[i].plot(xs, ys)
+#
+#
+# def p99_latency_animation_thread(queue):
+#     while True:
+#         node, p99_latency = queue.get()
+#         with p99_latency_local_lock:
+#             p99_latency_local[node].append(p99_latency)
+#
+#
+# def p99_animation_process(queue):
+#     anim_thr = threading.Thread(target=p99_latency_animation_thread, args=(queue,))
+#     anim_thr.start()
+#
+#     ani = animation.FuncAnimation(p99_latency_fig, p99_latency_animate, interval=1000)
+#     plt.show()
+#
+#     anim_thr.join()
+
+
+################################################################################
 
 temp_data = []
 
@@ -135,8 +180,16 @@ def fetch_data():
 fetch_thread = threading.Thread(target=fetch_data)
 fetch_thread.start()
 
-queue = multiprocessing.Queue()
-p1 = multiprocessing.Process(target=animation_process, args=(queue, ))
+throughput_queue = multiprocessing.Queue()
+p99_latency_queue = multiprocessing.Queue()
+
+p1 = multiprocessing.Process(target=throughput_animation_process, args=(throughput_queue,))
+p2 = multiprocessing.Process(target=latency_plot.p99_animation_process, args=(p99_latency_queue,))
+
 p1.start()
+p2.start()
+
 p1.join()
+p2.join()
+
 fetch_thread.join()

@@ -115,9 +115,9 @@ def get_throughput_for_telemetry(local_telemetry_data, fetch_length):
 
                 avg = 0
                 try:
-                    avg = sum(
-                        [local_telemetry_data["ycsb"][node][r][process][t]["throughput"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
-                         local_telemetry_data["ycsb"][node][r][process][t]["throughput"] > 0.0]) / num_ele
+                    fetched_throughput = [local_telemetry_data["ycsb"][node][r][process][t]["throughput"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
+                         local_telemetry_data["ycsb"][node][r][process][t]["throughput"] > 0.0]
+                    avg = sum(fetched_throughput)/len(fetched_throughput)
                 except Exception as e:
                     logging.info("exception {}".format(e))
 
@@ -145,9 +145,9 @@ def get_p99_for_telemetry(local_telemetry_data, fetch_length):
 
                 avg = 0
                 try:
-                    avg = sum(
-                        [local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
-                         local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] > 0.0]) / num_ele
+                    fetched_p99_latency = [local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
+                         local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] > 0.0]
+                    avg = sum(fetched_p99_latency)/len(fetched_p99_latency)
 
                 except Exception as e:
                     print("exception {}".format(e))

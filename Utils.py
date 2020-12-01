@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import socket
 import threading
@@ -76,6 +77,9 @@ def update_cfg_file(new_cfg, cfg_filepath, coordinator_conn):
             cur_cfg_id = int(line.strip().split('-')[-1])
 
     cfg_file.close()
+
+    logging.info('updating to this config')
+    logging.info(new_cfg.get_str(cur_cfg_id+1))
 
     cfg_file = open(cfg_filepath, 'a')
     cfg_file.write('\n'+new_cfg.get_str(cur_cfg_id + 1))
@@ -161,6 +165,30 @@ def get_copy_of_telemetry_data():
         local_telemetry_data = copy.deepcopy(telemetry_data)
 
     return local_telemetry_data
+
+
+req_count = 0
+test_data = None
+
+
+def get_copy_of_telemetry_data_test():
+    global req_count, test_data
+
+    if req_count == 0:
+        # read from file
+        with open('telemetry_data.json') as f:
+            test_data = json.load(f)
+    # print(json.dumps(test_data, indent=4))
+    dict_to_return = copy.deepcopy(test_data)
+    for r in dict_to_return["ycsb"]['4']:
+        for p in dict_to_return["ycsb"]['4'][r]:
+            # print(dict_to_return["ycsb"]['4'][r][p][100000:100001], req_count)
+            # break
+            if (req_count+1)*50 >= len(dict_to_return['ycsb']['4'][r][p]):
+                raise Exception
+            dict_to_return["ycsb"]['4'][r][p] = dict_to_return["ycsb"]['4'][r][p][req_count*50:(req_count+1)*50]
+    req_count += 1
+    return dict_to_return
 
 
 args = None

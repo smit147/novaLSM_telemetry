@@ -24,7 +24,7 @@ def is_underloaded_throughput(throughput):
 
 def is_overloaded_throughput(throughput):
     throughput_threshold = 50000
-    if throughput < throughput_threshold:
+    if throughput > throughput_threshold:
         return True
     return False
 
@@ -44,11 +44,14 @@ def cfg_change():
         # get_one_copy_of_telemetry
         telemetry_data = Utils.get_copy_of_telemetry_data()
 
-        per_node_throughput, per_range_throughput = Utils.get_throughput_for_telemetry(telemetry_data, sleep_time_in_sec-5)
-        per_node_p99, per_range_p99 = Utils.get_p99_for_telemetry(telemetry_data, sleep_time_in_sec-5)
-
-        overloaded_nodes = [ind for ind in range(len(per_node_p99)) if is_overloaded_p99(per_node_p99[ind][0]/per_node_p99[ind][1])]
+        per_node_throughput, per_range_throughput = Utils.get_throughput_for_telemetry(telemetry_data, sleep_time_in_sec - 5)
+        per_node_p99, per_range_p99 = Utils.get_p99_for_telemetry(telemetry_data, sleep_time_in_sec - 5)
+        logging.info(str(per_range_p99))
+        overloaded_nodes = [ind for ind in range(len(per_node_p99)) if per_node_p99[ind][1] > 0 and is_overloaded_p99(per_node_p99[ind][0]/per_node_p99[ind][1])]
         underloaded_nodes = [ind for ind in range(len(per_node_throughput)) if is_underloaded_throughput(per_node_throughput[ind])]
+
+        logging.info(overloaded_nodes.__str__())
+        logging.info(underloaded_nodes.__str__())
 
         new_cfg_state = copy.deepcopy(Utils.cur_config_state)
 
@@ -56,13 +59,26 @@ def cfg_change():
 
         # looping over all overloaded servers.
         for over_node_ind in overloaded_nodes:
-            max_throughput_range = Utils.get_max_throughput_range(per_node_throughput[over_node_ind], per_range_throughput)
+            logging.debug('over_node_id {}'.format(over_node_ind))
+            logging.debug('over_node\'s throughput {} p99 {}'.format(per_node_throughput[over_node_ind],
+                                                                     per_node_p99[over_node_ind][0] /
+                                                                     per_node_p99[over_node_ind][1]))
+            max_throughput_range = Utils.get_max_throughput_range(over_node_ind, per_range_throughput)
+            logging.info('max throughput range {} {}'.format(max_throughput_range[0], max_throughput_range[1]))
             for under_node_ind in underloaded_nodes:
+                if under_node_ind == over_node_ind:
+                    continue
+                logging.debug('under_node_id {}'.format(under_node_ind))
+                logging.debug('under_node\'s throughput {} p99 {}'.format(per_node_throughput[under_node_ind],
+                                                                         per_node_p99[under_node_ind][0] /
+                                                                         per_node_p99[under_node_ind][1]))
+
                 if under_node_ind in updated_not_underloaded_nodes:
                     continue
                 if not is_overloaded_throughput(max_throughput_range[0]+per_node_throughput[under_node_ind]):
+                    logging.info('CHANGED!')
                     # Pushing this change to the config.
-                    temp_list = list(new_cfg_state.range[max_throughput_range[1]])
+                    temp_list = list(new_cfg_state.ranges[max_throughput_range[1]])
                     temp_list[2] = under_node_ind
                     new_cfg_state.ranges[max_throughput_range[1]] = tuple(temp_list)
 

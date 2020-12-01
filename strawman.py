@@ -25,7 +25,7 @@ def cfg_change():
     # get_one_copy_of_telemetry
     telemetry_data = Utils.get_copy_of_telemetry_data()
 
-    per_node_throughput, per_range_throughput = Utils.get_throughput_for_telemetry(telemetry_data)
+    per_node_throughput, per_range_throughput = Utils.get_throughput_for_telemetry(telemetry_data, 50)
 
     # to swap, max throughput range in this node
     node_1 = per_node_throughput.index(max(per_node_throughput))

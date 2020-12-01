@@ -15,6 +15,9 @@ def parse_performance(file):
     prev_copy = {}
 
     lines = file.readlines()
+    if debug:
+        print("lines read: ")
+        print(lines)
     for line in lines:
         if "current ops/sec" in line:
             try:
@@ -144,7 +147,7 @@ count = 0
 ## create connection to server now
 socket_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socket_conn.connect((server_ip, server_port))
-
+debug = False
 
 for range_id in range(ranges):
     for process_id in range(1):
@@ -167,6 +170,8 @@ while True:
         performance_info[range_id] = {}
         for process_id in range(max_processes):
             if "{}-{}".format(range_id, process_id) in files:
+                if debug:
+                    print("parsing data for range: {} process {}".format(range_id, process_id))
                 local_perf = parse_performance(files["{}-{}".format(range_id, process_id)])
                 performance_info[range_id][process_id] = local_perf
 

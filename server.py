@@ -158,7 +158,7 @@ def send_data_to_local_connections(data):
         for local_connection in local_connections:
             local_connection.sendall(data_str)
 
-    logging.info("data sent")
+    logging.debug("data sent")
 
 def send_telemetry_to_local_connection(telemetry):
     try:
@@ -267,7 +267,7 @@ def main():
     # Change here if you want to change the logic of dynamic placement mapper.
     if args.run_dpm == "run_dpm":
         logging.info('starting configuration change thread')
-        cfg_change_thread = threading.Thread(target=scads_whitebox.cfg_change)
+        cfg_change_thread = threading.Thread(target=strawman.cfg_change)
         cfg_change_thread.start()
 
     logging.info('starting local connections thread')

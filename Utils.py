@@ -109,9 +109,14 @@ def get_throughput_for_telemetry(local_telemetry_data, fetch_length):
                 num_ele_to_fetch = min(len(local_telemetry_data["ycsb"][node][r][process]), fetch_length)
                 num_ele = len(local_telemetry_data["ycsb"][node][r][process])
 
-                avg = sum(
-                    [local_telemetry_data["ycsb"][node][r][process][t]["throughput"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
-                     local_telemetry_data["ycsb"][node][r][process][t]["throughput"] > 0.0]) / num_ele
+                avg = 0
+                try:
+                    avg = sum(
+                        [local_telemetry_data["ycsb"][node][r][process][t]["throughput"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
+                         local_telemetry_data["ycsb"][node][r][process][t]["throughput"] > 0.0]) / num_ele
+                except Exception as e:
+                    logging.info("exception {}".format(e))
+
                 per_node_throughput[cur_config_state.ranges[r_id][2]] += avg
                 per_range_throughput[r_id] += avg
 
@@ -119,6 +124,11 @@ def get_throughput_for_telemetry(local_telemetry_data, fetch_length):
 
 
 def get_p99_for_telemetry(local_telemetry_data, fetch_length):
+
+    # tuple (i,j): for a node
+    # i --> summation of latency (avg over time) of ranges
+    # j --> number of ranges
+
     per_node_p99 = [(0, 0) for _ in range(len(cur_config_state.ltcs))]
     per_range_p99 = [(0, 0) for _ in range(len(cur_config_state.ranges))]
 
@@ -129,12 +139,17 @@ def get_p99_for_telemetry(local_telemetry_data, fetch_length):
                 num_ele_to_fetch = min(len(local_telemetry_data["ycsb"][node][r][process]), fetch_length)
                 num_ele = len(local_telemetry_data["ycsb"][node][r][process])
 
-                avg = sum(
-                    [local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
-                     local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] > 0.0]) / num_ele
+                avg = 0
+                try:
+                    avg = sum(
+                        [local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] for t in range(num_ele-num_ele_to_fetch, num_ele) if
+                         local_telemetry_data["ycsb"][node][r][process][t]["read"]["p99"] > 0.0]) / num_ele
 
-                per_node_p99[cur_config_state[r_id][2]] = (per_node_p99[cur_config_state[r_id][2]][0]+avg,
-                                                          per_node_p99[cur_config_state[r_id][2]][1]+1)
+                except Exception as e:
+                    print("exception {}".format(e))
+
+                per_node_p99[cur_config_state.ranges[r_id][2]] = (per_node_p99[cur_config_state.ranges[r_id][2]][0]+avg,
+                                                          per_node_p99[cur_config_state.ranges[r_id][2]][1]+1)
 
                 per_range_p99[r_id] = (per_range_p99[r_id][0]+avg, per_range_p99[r_id][1]+1)
 

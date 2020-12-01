@@ -59,8 +59,8 @@ def cfg_change():
 
         # looping over all overloaded servers.
         for over_node_ind in overloaded_nodes:
-            logging.debug('over_node_id {}'.format(over_node_ind))
-            logging.debug('over_node\'s throughput {} p99 {}'.format(per_node_throughput[over_node_ind],
+            logging.info('over_node_id {}'.format(over_node_ind))
+            logging.info('over_node\'s throughput {} p99 {}'.format(per_node_throughput[over_node_ind],
                                                                      per_node_p99[over_node_ind][0] /
                                                                      per_node_p99[over_node_ind][1]))
             max_throughput_range = Utils.get_max_throughput_range(over_node_ind, per_range_throughput)
@@ -68,8 +68,8 @@ def cfg_change():
             for under_node_ind in underloaded_nodes:
                 if under_node_ind == over_node_ind:
                     continue
-                logging.debug('under_node_id {}'.format(under_node_ind))
-                logging.debug('under_node\'s throughput {} p99 {}'.format(per_node_throughput[under_node_ind],
+                logging.info('under_node_id {}'.format(under_node_ind))
+                logging.info('under_node\'s throughput {} p99 {}'.format(per_node_throughput[under_node_ind],
                                                                          per_node_p99[under_node_ind][0] /
                                                                          per_node_p99[under_node_ind][1]))
 

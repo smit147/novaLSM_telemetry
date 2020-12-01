@@ -12,6 +12,7 @@ style.use('fivethirtyeight')
 fig = plt.figure()
 axs = [fig.add_subplot(2,2,i) for i in range(1,5)]
 
+latency_fig = plt.figure()
 
 throughput_global = {}
 for i in range(4):

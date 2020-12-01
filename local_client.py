@@ -2,32 +2,18 @@ import socket
 import sys
 import json
 import threading
+import multiprocessing
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
 
-style.use('fivethirtyeight')
-
-fig = plt.figure()
-axs = [fig.add_subplot(2,2,i) for i in range(1,5)]
-
-latency_fig = plt.figure()
+# latency_fig = plt.figure()
 
 throughput_global = {}
 for i in range(4):
     throughput_global[i] = []
 
-throughput_global_lock = threading.Lock()
-
-def animate(i):
-    for i in range(4):
-        with throughput_global_lock:
-            xs = range(1, len(throughput_global[i])+1)
-            ys = [j for j in throughput_global[i]]
-
-        axs[i].clear()
-        axs[i].plot(xs, ys)
 
 def plot_telemetry(telemetry):
     global count
@@ -44,40 +30,76 @@ def plot_telemetry(telemetry):
             if should_brk:
                 break
 
-            with throughput_global_lock:
-                throughput_global[int(r)].append(throughput)
+            throughput_global[int(r)].append(throughput)
+            # print('data putting in queue {} {}'.format(r, throughput))
+            queue.put((int(r), throughput))
 
     except Exception as e:
         print(json.dumps(telemetry, indent=4))
         print(e)
 
 
-server_ip = sys.argv[1]
-server_port = int(sys.argv[2])
+throughput_local = {}
+for i in range(4):
+    throughput_local[i] = []
+throughput_local_lock = threading.Lock()
 
-socket_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-while True:
-    try:
-        socket_conn.connect((server_ip, server_port))
-        break
-    except:
-        print("connecting to server agian")
-        continue
+style.use('fivethirtyeight')
 
-print('connected to server')
+fig = plt.figure()
+axs = [fig.add_subplot(2,2,i) for i in range(1,5)]
 
-temp_data = []
 
-def animation_thr():
+def animate(i):
+    for i in range(4):
+        with throughput_local_lock:
+            if i not in throughput_local:
+                continue
+            xs = range(1, len(throughput_local[i])+1)
+            ys = [j for j in throughput_local[i]]
+
+        axs[i].clear()
+        axs[i].plot(xs, ys)
+
+
+def animation_thread(queue):
+    # print("thread started")
+    while True:
+        node, throughput = queue.get()
+        # print(node, throughput)
+        with throughput_local_lock:
+            throughput_local[node].append(throughput)
+
+def animation_process(queue):
+    # print("animation process started")
+    anim_thr = threading.Thread(target=animation_thread, args=(queue, ))
+    anim_thr.start()
+
     ani = animation.FuncAnimation(fig, animate, interval=1000)
     plt.show()
 
-# animation_thr()
-# print("running anim")
+    anim_thr.join()
+
+
+temp_data = []
+
 
 def fetch_data():
-
     global temp_data
+
+    server_ip = sys.argv[1]
+    server_port = int(sys.argv[2])
+
+    socket_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while True:
+        try:
+            socket_conn.connect((server_ip, server_port))
+            break
+        except:
+            print("connecting to server agian")
+            continue
+
+    print('connected to server')
 
     while True:
         data = socket_conn.recv(102400)
@@ -100,6 +122,7 @@ def fetch_data():
 
             try:
                 telemetry = json.loads(json_readable_data)
+                # print("data recieved")
                 plot_telemetry(telemetry)
 
             except Exception as e:
@@ -112,5 +135,8 @@ def fetch_data():
 fetch_thread = threading.Thread(target=fetch_data)
 fetch_thread.start()
 
-animation_thr()
+queue = multiprocessing.Queue()
+p1 = multiprocessing.Process(target=animation_process, args=(queue, ))
+p1.start()
+p1.join()
 fetch_thread.join()

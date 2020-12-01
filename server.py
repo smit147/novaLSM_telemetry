@@ -156,7 +156,10 @@ def send_data_to_local_connections(data):
     data_str = data_str.encode("utf-8")
     with local_connections_lock:
         for local_connection in local_connections:
-            local_connection.sendall(data_str)
+            try:
+                local_connection.sendall(data_str)
+            except Exception as e:
+                logging.debug(e)
 
     logging.debug("data sent")
 
@@ -267,7 +270,7 @@ def main():
     # Change here if you want to change the logic of dynamic placement mapper.
     if args.run_dpm == "run_dpm":
         logging.info('starting configuration change thread')
-        cfg_change_thread = threading.Thread(target=strawman.cfg_change)
+        cfg_change_thread = threading.Thread(target=scads_whitebox.cfg_change)
         cfg_change_thread.start()
 
     logging.info('starting local connections thread')

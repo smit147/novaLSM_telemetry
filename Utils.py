@@ -102,6 +102,11 @@ def get_max_throughput_range(node, per_range_throughput):
     return (max_throughput, i)
 
 
+def get_throughput_decreasing_ranges(node, per_range_throughput):
+    ranges = sorted([(per_range_throughput[ind], ind) for ind in range(len(cur_config_state.ranges)) if cur_config_state.ranges[ind][2] == node], reverse=True)
+    return ranges
+
+
 def get_throughput_for_telemetry(local_telemetry_data, fetch_length):
     per_node_throughput = [0 for _ in range(len(cur_config_state.ltcs))]
     per_range_throughput = [0 for _ in range(len(cur_config_state.ranges))]

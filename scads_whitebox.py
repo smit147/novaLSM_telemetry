@@ -17,13 +17,13 @@ def is_overloaded_p99(p99):
 
 
 def is_underloaded_throughput(throughput):
-    throughput_threshold = 45000
+    throughput_threshold = 35000
     if throughput < throughput_threshold:
         return True
     return False
 
 def is_overloaded_throughput(throughput):
-    throughput_threshold = 50000
+    throughput_threshold = 40000
     if throughput > throughput_threshold:
         return True
     return False

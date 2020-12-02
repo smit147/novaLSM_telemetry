@@ -161,7 +161,7 @@ def send_data_to_local_connections(data):
             except Exception as e:
                 logging.debug(e)
 
-    logging.debug("data sent")
+    # logging.debug("data sent")
 
 def send_telemetry_to_local_connection(telemetry):
     try:

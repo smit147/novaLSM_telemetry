@@ -179,19 +179,21 @@ test_data = None
 def get_copy_of_telemetry_data_test():
     global req_count, test_data
 
+    data_len = 50
+    ycsb_node_id = '5'
     if req_count == 0:
         # read from file
         with open('telemetry_data.json') as f:
             test_data = json.load(f)
     # print(json.dumps(test_data, indent=4))
     dict_to_return = copy.deepcopy(test_data)
-    for r in dict_to_return["ycsb"]['4']:
-        for p in dict_to_return["ycsb"]['4'][r]:
+    for r in dict_to_return["ycsb"][ycsb_node_id]:
+        for p in dict_to_return["ycsb"][ycsb_node_id][r]:
             # print(dict_to_return["ycsb"]['4'][r][p][100000:100001], req_count)
             # break
-            if (req_count+1)*50 >= len(dict_to_return['ycsb']['4'][r][p]):
+            if (req_count+1)*data_len >= len(dict_to_return['ycsb'][ycsb_node_id][r][p]):
                 raise Exception
-            dict_to_return["ycsb"]['4'][r][p] = dict_to_return["ycsb"]['4'][r][p][req_count*50:(req_count+1)*50]
+            dict_to_return["ycsb"][ycsb_node_id][r][p] = dict_to_return["ycsb"][ycsb_node_id][r][p][req_count*data_len:(req_count+1)*data_len]
     req_count += 1
     return dict_to_return
 

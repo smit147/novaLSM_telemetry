@@ -7,19 +7,21 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
 
+nranges = 8
 style.use('fivethirtyeight')
 
 fig = plt.figure()
-axs = [fig.add_subplot(2,2,i) for i in range(1,5)]
+fig.suptitle("throughput")
+axs = [fig.add_subplot(nranges/2,2,i) for i in range(1,nranges+1)]
 
 throughput_global = {}
-for i in range(4):
+for i in range(nranges):
     throughput_global[i] = []
 
 throughput_global_lock = threading.Lock()
 
 def animate(i):
-    for i in range(4):
+    for i in range(nranges):
         with throughput_global_lock:
             xs = range(1, len(throughput_global[i])+1)
             ys = [j for j in throughput_global[i]]

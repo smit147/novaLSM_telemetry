@@ -7,19 +7,21 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
 
+nranges = 8
 style.use('fivethirtyeight')
 
 fig = plt.figure()
-axs = [fig.add_subplot(2,2,i) for i in range(1,5)]
+fig.suptitle("latency")
+axs = [fig.add_subplot(nranges/2,2,i) for i in range(1,nranges+1)]
 
 p99_latency_global = {}
-for i in range(4):
+for i in range(nranges):
     p99_latency_global[i] = []
 
 p99_latency_global_lock = threading.Lock()
 
 def animate(i):
-    for i in range(4):
+    for i in range(nranges):
         with p99_latency_global_lock:
             xs = range(1, len(p99_latency_global[i]) + 1)
             ys = [j for j in p99_latency_global[i]]
@@ -33,9 +35,9 @@ def plot_telemetry(telemetry):
         for r in telemetry:
             p99_latency = (0, 0)
             for p in telemetry[r]:
-                if "read" not in telemetry[r][p] or "p99" not in telemetry[r][p]["read"]:
+                if "write" not in telemetry[r][p] or "p99" not in telemetry[r][p]["write"]:
                     break
-                p99_latency = (p99_latency[0] + float(telemetry[r][p]["read"]["p99"]), p99_latency[1]+1)
+                p99_latency = (p99_latency[0] + float(telemetry[r][p]["write"]["p99"]), p99_latency[1]+1)
 
             if p99_latency[0] + p99_latency[1] > 0:
                 with p99_latency_global_lock:

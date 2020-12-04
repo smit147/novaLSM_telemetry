@@ -25,5 +25,5 @@ args = parse_args(['--config_filepath=nova-tutorial-config'])
 
 Utils.init(args)
 
-scads_whitebox.cfg_change()
+scads_whitebox.cfg_change_test()
 

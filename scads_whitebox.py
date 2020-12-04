@@ -7,6 +7,11 @@ import Utils
 '''
 [ADD DESCRIPTION]
 '''
+underloaded_workloadc_thorughput_threshold = 40000
+overloaded_workloadc_thorughput_threshold = 45000
+
+underloaded_workloadb_thorughput_threshold = 45000
+overloaded_workloadb_thorughput_threshold = 50000
 
 # info: threshold could be changed here. Initially set to 0.008
 def is_overloaded_p99(p99):
@@ -17,14 +22,14 @@ def is_overloaded_p99(p99):
 
 
 def is_underloaded_throughput(throughput):
-    throughput_threshold = 45000
+    throughput_threshold = underloaded_workloadc_thorughput_threshold
     if throughput < throughput_threshold:
         return True
     return False
 
 
 def is_overloaded_throughput(throughput):
-    throughput_threshold = 50000
+    throughput_threshold = overloaded_workloadc_thorughput_threshold
     if throughput > throughput_threshold:
         return True
     return False
@@ -41,6 +46,7 @@ def placement_reorganisation(telemetry_data, sleep_time_in_sec):
     per_node_throughput, per_range_throughput = Utils.get_throughput_for_telemetry(telemetry_data,
                                                                                    sleep_time_in_sec - 5)
     per_node_p99, per_range_p99 = Utils.get_p99_for_telemetry(telemetry_data, sleep_time_in_sec - 5)
+    logging.info(str(per_range_throughput))
     logging.info(str(per_range_p99))
 
     # Segregating node and its value, so that we can sort and iterate in decreasing value.
@@ -137,3 +143,18 @@ def cfg_change():
         Utils.update_cfg_file(new_cfg=new_cfg_state, cfg_filepath=Utils.args.config_filepath, coordinator_conn=coordinator_conn)
 
         logging.info('Config change done for scads white box')
+
+
+def cfg_change_test():
+
+    # scads- white box implementation
+    sleep_time_in_sec = 50
+    while True:
+        # time.sleep(sleep_time_in_sec)
+
+        # get_one_copy_of_telemetry
+        telemetry_data = Utils.get_copy_of_telemetry_data_test()
+
+        new_cfg_state = placement_reorganisation(telemetry_data, sleep_time_in_sec-5)
+
+        logging.info("updated config:\n{}".format(new_cfg_state.get_str('~')))
